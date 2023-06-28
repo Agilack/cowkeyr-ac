@@ -207,17 +207,17 @@ __fw_version:
     .type    Reset_Handler, %function
 Reset_Handler:
     /* Copy datas from flash to SRAM */
-//    ldr    r1, =_etext
-//    ldr    r2, =__data_start__
-//    ldr    r3, =__data_end__
-//    subs    r3, r2
-//    ble    .copy_end
-//.copy_loop:
-//    subs    r3, #4
-//    ldr    r0, [r1, r3]
-//    str    r0, [r2, r3]
-//    bgt    .copy_loop
-//.copy_end:
+    ldr    r1, =_sidata
+    ldr    r2, =__data_start__
+    ldr    r3, =__data_end__
+    subs    r3, r2
+    ble    .copy_end
+.copy_loop:
+    subs    r3, #4
+    ldr    r0, [r1, r3]
+    str    r0, [r2, r3]
+    bgt    .copy_loop
+.copy_end:
     /* Call C code entry ("main" function) */
     bl  main
 

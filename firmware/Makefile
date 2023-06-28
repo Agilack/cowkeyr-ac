@@ -17,7 +17,9 @@ TARGET   ?= fw_hello
 CROSS    ?= arm-none-eabi-
 BUILDDIR ?= build
 
-SRC  = main.c
+SRC  = hardware.c main.c
+SRC += driver/spi.c driver/uart.c
+SRC += log.c
 ASRC = startup.s
 
 CC = $(CROSS)gcc
@@ -27,6 +29,7 @@ OD = $(CROSS)objdump
 CFLAGS  = -mcpu=cortex-m33 -mthumb -mcmse
 CFLAGS += -Os -nostdlib -ffunction-sections
 CFLAGS += -Wall -Wextra -Wconversion -pedantic
+CFLAGS += -Isrc
 CFLAGS += -g
 LDFLAGS  = -Wl,-Map=$(TARGET).map,--cref,--gc-sections
 LDFLAGS += -nostartfiles -Tsrc/linker.ld -static
@@ -53,6 +56,7 @@ clean:
 $(BUILDDIR):
 	@echo "  [MKDIR] $@"
 	@mkdir -p $(BUILDDIR)
+	@mkdir -p $(BUILDDIR)/driver
 
 $(AOBJ) : $(BUILDDIR)/%.o : src/%.s
 	@echo "  [AS] $<"

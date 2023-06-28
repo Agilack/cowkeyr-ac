@@ -38,12 +38,33 @@
 #define GPIOB_NS  (AHB2_NS + 0x0400)
 #define GPIOC_NS  (AHB2_NS + 0x0800)
 #define GPIOD_NS  (AHB2_NS + 0x0C00)
+#define GPIOE_NS  (AHB2_NS + 0x1000)
+#define SPI4_NS   (APB2_NS + 0x4C00)
 #define RCC_NS    (AHB3_NS + 0X0C00)
 #define USART3_NS (APB1_NS + 0x4800)
 
 // RCC registers
 #define RCC_AHB2ENR_NS  (RCC_NS + 0x8C)
+#define RCC_AHB2RST_NS  (RCC_NS + 0x64)
 #define RCC_APB1LENR_NS (RCC_NS + 0x9C)
+#define RCC_APB2ENR_NS  (RCC_NS + 0xA4)
+
+// GPIO registers
+#define GPIO_MODER(x)   (x + 0x00)
+#define GPIO_OTYPER(x)  (x + 0x04)
+#define GPIO_OSPEEDR(x) (x + 0x08)
+#define GPIO_PUPDR(x)   (x + 0x0C)
+#define GPIO_IDR(x)     (x + 0x10)
+#define GPIO_ODR(x)     (x + 0x14)
+#define GPIO_BSRR(x)    (x + 0x18)
+#define GPIO_LCKR(x)    (x + 0x1C)
+#define GPIO_AFRL(x)    (x + 0x20)
+#define GPIO_AFRH(x)    (x + 0x24)
+#define GPIO_BRR(x)     (x + 0x28)
+#define GPIO_HSLVR(x)   (x + 0x2C)
+#define GPIO_SECCFGR(x) (x + 0x30)
+
+void hw_init(void);
 
 #include "types.h"
 

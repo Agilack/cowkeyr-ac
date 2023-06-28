@@ -15,6 +15,7 @@
  */
 #ifndef UART_H
 #define UART_H
+#include "types.h"
 
 // USART registers
 #define USART_CR1(x)   (x + 0x00)
@@ -29,5 +30,10 @@
 #define USART_RDR(x)   (x + 0x24)
 #define USART_TDR(x)   (x + 0x28)
 #define USART_PRESC(x) (x + 0x2C)
+
+void uart_init(void);
+int  uart_getc(unsigned char *c);
+void uart_putc(u8 c);
+void uart_puts(char *s);
 
 #endif

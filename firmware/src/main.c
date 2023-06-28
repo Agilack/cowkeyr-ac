@@ -14,7 +14,12 @@
  * This program is distributed WITHOUT ANY WARRANTY.
  */
 #include "hardware.h"
-#include "uart.h"
+#include "driver/spi.h"
+#include "driver/uart.h"
+#include "log.h"
+
+void spi_test(void);
+uint wait_key(void);
 
 /**
  * @brief Entry point of the C code
@@ -22,41 +27,96 @@
  */
 int main(void)
 {
-	const char msg[] = "Hello World !\r\n";
-	const char *s;
+	// Board init
+	hw_init();
+	// Drivers init
+	uart_init();
+	spi_init();
+	// Functional modules init
+	log_init();
 
-	// Enable GPIO-B
-	reg_set(RCC_AHB2ENR_NS, (1 << 1));
-	// Configure PB0 as output
-	reg_wr(GPIOB_NS, 0x01);
-	// Set PB0 to '1'
-	reg_wr(GPIOB_NS+ 0X18, 1);
+	log_print(0, "%{--{ CowKeyr-AC }==--%}\n", LOG_BBLU);
 
-	// Enable USART-3
-	reg_set(RCC_APB1LENR_NS, (1 << 18));
-	// Configure USART-3
-	reg_wr(USART_BRR(USART3_NS),  278); // 115200 @ 32MHz
-	reg_wr(USART_CR1(USART3_NS), 0x0C); // Set TE & RE
-	reg_wr(USART_CR1(USART3_NS), 0x0D); // Set USART enable bit
+	spi_test();
 
-	// Enable GPIO-D
-	reg_set(RCC_AHB2ENR_NS, (1 << 3));
-	// Configure IOs to use UART alternate-function
-	reg_wr (GPIOD_NS+0x24, (7 << 0)); // PD8 use AF7
-	reg_set(GPIOD_NS+0x24, (7 << 4)); // PD9 use AF7
-	// Configure TX pin as output
-	reg_wr(GPIOD_NS+0x00, 0xFFFAFFFF);
-
-	// Send message string to uart
-	for (s = msg; *s != 0; s++)
+	while(1)
 	{
-		// Wait for UART ready to transmit
-		while ((reg_rd(USART_ISR(USART3_NS)) & (1 << 7)) == 0)
-			;
-		// Send a single test byte
-		reg_wr(USART_TDR(USART3_NS), *s);
+		unsigned char c;
+		if (uart_getc(&c))
+		{
+			log_print(0, "RX %c\n", c);
+		}
 	}
+}
 
-	while(1);
+/**
+ * @brief Firsts tests of the SPI driver during firmware development
+ *
+ */
+void spi_test(void)
+{
+	u32 v1, v2;
+
+	log_print(0, " SPI registers\n");
+
+	v1 = reg_rd( SPI_CR1(SPI4_NS) );
+	v2 = reg_rd( SPI_CR2(SPI4_NS) );
+	log_print(0, "   CR1 %32x  CR2 %16x\n", v1, v2);
+
+	v1 = reg_rd( SPI_CFG1(SPI4_NS) );
+	v2 = reg_rd( SPI_CFG2(SPI4_NS) );
+	log_print(0, "  CFG1 %32x CFG2 %32x\n\n", v1, v2);
+
+	reg_wr( SPI_CR2(SPI4_NS),  0); // Endless transaction
+
+	// Push one byte into TC fifo
+	log_print(0, "Send byte (wait key) ... ");
+	wait_key();
+	reg8_wr( SPI_TXDR(SPI4_NS), 0xAA);
+	log_print(0, "0xAA sent\n");
+
+	// Set CSTART to start SPI transfer
+	log_print(0, "Set CSTART (wait key) ... ");
+	wait_key();
+	reg_set(SPI_CR1(SPI4_NS), (1 << 9));
+	log_print(0, "done.\n");
+
+	// Set CSUSP to finish endless transfer
+	log_print(0, "Set SUSP to finish transaction ... ");
+	wait_key();
+	reg_set(SPI_CR1(SPI4_NS), (1 << 10));
+	log_print(0, "done\n");
+
+	log_print(0, "Transaction complete\n\n");
+
+	wait_key();
+	reg_clr(SPI_CR1(SPI4_NS), (1 << 10));
+	log_print(0, "Ready for second transaction\n");
+
+	wait_key();
+	reg8_wr( SPI_TXDR(SPI4_NS), 0xAA);
+	reg_set(SPI_CR1(SPI4_NS), (1 << 9));
+	while ((reg_rd(SPI_SR(SPI4_NS)) & 1) == 0)
+		;
+	reg_set(SPI_CR1(SPI4_NS), (1 << 10));
+	log_print(0, "Sencond transaction complete\n");
+
+	wait_key();
+	reg_wr( SPI_CR2(SPI4_NS),  1);
+	reg8_wr( SPI_TXDR(SPI4_NS), 0xAA);
+	wait_key();
+	reg_set(SPI_CR1(SPI4_NS), (1 << 9));
+	wait_key();
+	reg_set(SPI_CR1(SPI4_NS), (1 << 10));
+}
+
+uint wait_key(void)
+{
+	while(1)
+	{
+		unsigned char c;
+		if (uart_getc(&c))
+			return(c);
+	}
 }
 /* EOF */

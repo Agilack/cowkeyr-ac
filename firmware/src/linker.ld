@@ -118,13 +118,13 @@ SECTIONS
 	.data :
 	{
 		. = ALIGN(4);
-		_sdata = .; /* create a global symbol at data start */
+		__data_start__ = .;
 		*(.data) /* .data sections */
 		*(.data*) /* .data* sections */
 		*(.RamFunc) /* .RamFunc sections */
 		*(.RamFunc*) /* .RamFunc* sections */
 		. = ALIGN(4);
-		_edata = .; /* define a global symbol at data end */
+		__data_end__ = .;
 	} >SRAM1 AT> FLASH
 
 	/* Uninitialized data section into "RAM" Ram type memory */
