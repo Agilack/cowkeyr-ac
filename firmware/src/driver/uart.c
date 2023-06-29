@@ -20,12 +20,12 @@
 void uart_init(void)
 {
 	/* Activate USART3 */
-	reg_set(RCC_APB1LENR_NS, (1 << 18));
+	reg_set(RCC_APB1LENR(RCC), (1 << 18));
 
 	/* Configure UART3 */
-	reg_wr(USART_BRR(USART3_NS),  278); // 115200 @ 32MHz
-	reg_wr(USART_CR1(USART3_NS), 0x0C); // Set TE & RE
-	reg_wr(USART_CR1(USART3_NS), 0x0D); // Set USART enable bit
+	reg_wr(USART_BRR(USART3),  278); // 115200 @ 32MHz
+	reg_wr(USART_CR1(USART3), 0x0C); // Set TE & RE
+	reg_wr(USART_CR1(USART3), 0x0D); // Set USART enable bit
 }
 
 /**
@@ -38,10 +38,10 @@ int uart_getc(unsigned char *c)
 {
 	u32 rx;
 
-	if (reg_rd(USART_ISR(USART3_NS)) & (1 << 5))
+	if (reg_rd(USART_ISR(USART3)) & (1 << 5))
 	{
 		/* Get the received byte from RX fifo */
-		rx = reg_rd(USART_RDR(USART3_NS));
+		rx = reg_rd(USART_RDR(USART3));
 		/* If a data pointer has been defined, copy received byte */
 		if (c)
 			*c = (rx & 0xFF);
@@ -58,9 +58,9 @@ int uart_getc(unsigned char *c)
  */
 void uart_putc(u8 c)
 {
-	while ((reg_rd(USART_ISR(USART3_NS)) & (1 << 7)) == 0)
+	while ((reg_rd(USART_ISR(USART3)) & (1 << 7)) == 0)
 		;
-	reg_wr(USART_TDR(USART3_NS), c);
+	reg_wr(USART_TDR(USART3), c);
 }
 
 /**

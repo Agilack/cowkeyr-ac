@@ -18,6 +18,7 @@
 #include "driver/uart.h"
 #include "log.h"
 
+void main_ns(void);
 void spi_test(void);
 uint wait_key(void);
 
@@ -37,6 +38,32 @@ int main(void)
 
 	log_print(0, "%{--{ CowKeyr-AC }==--%}\n", LOG_BBLU);
 
+	// Try to read CPUID_NS to test if currently in secure mode
+	if (reg_rd(0xE002ED00) != 0)
+		log_print(0, " * Run in %{secure%} mode.\n", 2);
+	else
+		log_print(0, " * Run in %{unsecure%} mode.\n", 3);
+
+#ifdef TEST_UNPRIV
+	asm volatile("msr control, %0": : "r" (0x3) : "memory");
+	asm volatile("isb 0x0F":::"memory");
+#endif
+
+#ifdef TEST_UNSAFE
+	if (1)
+	{
+		void __attribute((cmse_nonsecure_call)) (*fct)(void);
+		log_print(0, "\n%{TEST:%} Scitch to unsafe env\n", LOG_BGRN);
+		log_dump((const u8*)0x08100000, 64, 1);
+		asm volatile("msr msp_ns, %0"::"r"(0x20050100):);
+		fct = *(unsigned long *)0x08100004;
+		log_print(0, "Non secure entry at %32x\n", (u32)fct);
+		if (fct != 0)
+			fct();
+	}
+#endif
+
+#ifdef TEST_SPI
 	spi_test();
 
 	while(1)
@@ -47,6 +74,8 @@ int main(void)
 			log_print(0, "RX %c\n", c);
 		}
 	}
+#endif
+	while(1);
 }
 
 /**
@@ -59,55 +88,55 @@ void spi_test(void)
 
 	log_print(0, " SPI registers\n");
 
-	v1 = reg_rd( SPI_CR1(SPI4_NS) );
-	v2 = reg_rd( SPI_CR2(SPI4_NS) );
+	v1 = reg_rd( SPI_CR1(SPI4) );
+	v2 = reg_rd( SPI_CR2(SPI4) );
 	log_print(0, "   CR1 %32x  CR2 %16x\n", v1, v2);
 
-	v1 = reg_rd( SPI_CFG1(SPI4_NS) );
-	v2 = reg_rd( SPI_CFG2(SPI4_NS) );
+	v1 = reg_rd( SPI_CFG1(SPI4) );
+	v2 = reg_rd( SPI_CFG2(SPI4) );
 	log_print(0, "  CFG1 %32x CFG2 %32x\n\n", v1, v2);
 
-	reg_wr( SPI_CR2(SPI4_NS),  0); // Endless transaction
+	reg_wr( SPI_CR2(SPI4),  0); // Endless transaction
 
 	// Push one byte into TC fifo
 	log_print(0, "Send byte (wait key) ... ");
 	wait_key();
-	reg8_wr( SPI_TXDR(SPI4_NS), 0xAA);
+	reg8_wr( SPI_TXDR(SPI4), 0xAA);
 	log_print(0, "0xAA sent\n");
 
 	// Set CSTART to start SPI transfer
 	log_print(0, "Set CSTART (wait key) ... ");
 	wait_key();
-	reg_set(SPI_CR1(SPI4_NS), (1 << 9));
+	reg_set(SPI_CR1(SPI4), (1 << 9));
 	log_print(0, "done.\n");
 
 	// Set CSUSP to finish endless transfer
 	log_print(0, "Set SUSP to finish transaction ... ");
 	wait_key();
-	reg_set(SPI_CR1(SPI4_NS), (1 << 10));
+	reg_set(SPI_CR1(SPI4), (1 << 10));
 	log_print(0, "done\n");
 
 	log_print(0, "Transaction complete\n\n");
 
 	wait_key();
-	reg_clr(SPI_CR1(SPI4_NS), (1 << 10));
+	reg_clr(SPI_CR1(SPI4), (1 << 10));
 	log_print(0, "Ready for second transaction\n");
 
 	wait_key();
-	reg8_wr( SPI_TXDR(SPI4_NS), 0xAA);
-	reg_set(SPI_CR1(SPI4_NS), (1 << 9));
-	while ((reg_rd(SPI_SR(SPI4_NS)) & 1) == 0)
+	reg8_wr( SPI_TXDR(SPI4), 0xAA);
+	reg_set(SPI_CR1(SPI4), (1 << 9));
+	while ((reg_rd(SPI_SR(SPI4)) & 1) == 0)
 		;
-	reg_set(SPI_CR1(SPI4_NS), (1 << 10));
+	reg_set(SPI_CR1(SPI4), (1 << 10));
 	log_print(0, "Sencond transaction complete\n");
 
 	wait_key();
-	reg_wr( SPI_CR2(SPI4_NS),  1);
-	reg8_wr( SPI_TXDR(SPI4_NS), 0xAA);
+	reg_wr( SPI_CR2(SPI4),  1);
+	reg8_wr( SPI_TXDR(SPI4), 0xAA);
 	wait_key();
-	reg_set(SPI_CR1(SPI4_NS), (1 << 9));
+	reg_set(SPI_CR1(SPI4), (1 << 9));
 	wait_key();
-	reg_set(SPI_CR1(SPI4_NS), (1 << 10));
+	reg_set(SPI_CR1(SPI4), (1 << 10));
 }
 
 uint wait_key(void)

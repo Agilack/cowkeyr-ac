@@ -34,6 +34,7 @@
 #define AHB4_S 0X56000000
 
 // Peripherals addresses (non-secure)
+#define GTZC1_NS  (AHB1_NS + 0x12400)
 #define GPIOA_NS  (AHB2_NS + 0x0000)
 #define GPIOB_NS  (AHB2_NS + 0x0400)
 #define GPIOC_NS  (AHB2_NS + 0x0800)
@@ -42,12 +43,45 @@
 #define SPI4_NS   (APB2_NS + 0x4C00)
 #define RCC_NS    (AHB3_NS + 0X0C00)
 #define USART3_NS (APB1_NS + 0x4800)
+// Peripherals addresses (secure)
+#define GTZC1_S  (AHB1_S + 0x12400)
+#define GPIOA_S  (AHB2_S + 0x0000)
+#define GPIOB_S  (AHB2_S + 0x0400)
+#define GPIOC_S  (AHB2_S + 0x0800)
+#define GPIOD_S  (AHB2_S + 0x0C00)
+#define GPIOE_S  (AHB2_S + 0x1000)
+#define SPI4_S   (APB2_S + 0x4C00)
+#define RCC_S    (AHB3_S + 0X0C00)
+#define USART3_S (APB1_S + 0x4800)
+
+#ifdef RUN_SEC
+#define GTZC1  GTZC1_S
+#define GPIOA  GPIOA_S
+#define GPIOB  GPIOB_S
+#define GPIOC  GPIOC_S
+#define GPIOD  GPIOD_S
+#define GPIOE  GPIOE_S
+#define RCC    RCC_S
+#define SPI4   SPI4_S
+#define USART3 USART3_S
+#else
+#define GTZC1  GTZC1_NS
+#define GPIOA  GPIOA_NS
+#define GPIOB  GPIOB_NS
+#define GPIOC  GPIOC_NS
+#define GPIOD  GPIOD_NS
+#define GPIOE  GPIOE_NS
+#define RCC    RCC_NS
+#define SPI4   SPI4_NS
+#define USART3 USART3_NS
+#endif
 
 // RCC registers
-#define RCC_AHB2ENR_NS  (RCC_NS + 0x8C)
-#define RCC_AHB2RST_NS  (RCC_NS + 0x64)
-#define RCC_APB1LENR_NS (RCC_NS + 0x9C)
-#define RCC_APB2ENR_NS  (RCC_NS + 0xA4)
+#define RCC_AHB1ENR(x)  (x + 0x88)
+#define RCC_AHB2ENR(x)  (x + 0x8C)
+#define RCC_AHB2RST(x)  (x + 0x64)
+#define RCC_APB1LENR(x) (x + 0x9C)
+#define RCC_APB2ENR(x)  (x + 0xA4)
 
 // GPIO registers
 #define GPIO_MODER(x)   (x + 0x00)
