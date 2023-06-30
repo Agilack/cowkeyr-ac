@@ -21,6 +21,7 @@
 void main_ns(void);
 void spi_test(void);
 uint wait_key(void);
+void test_obk(void);
 
 /**
  * @brief Entry point of the C code
@@ -47,6 +48,9 @@ int main(void)
 #ifdef TEST_UNPRIV
 	asm volatile("msr control, %0": : "r" (0x3) : "memory");
 	asm volatile("isb 0x0F":::"memory");
+#endif
+#ifdef TEST_OBK
+	test_obk();
 #endif
 
 #ifdef TEST_UNSAFE
@@ -137,6 +141,17 @@ void spi_test(void)
 	reg_set(SPI_CR1(SPI4), (1 << 9));
 	wait_key();
 	reg_set(SPI_CR1(SPI4), (1 << 10));
+}
+
+/**
+ * @brief Test content of Option Bytes Keys (OBK)
+ *
+ */
+void test_obk(void)
+{
+	log_print(0, "\nTEST OBK\n");
+	log_print(0, "Dump content of Key1:\n");
+	log_dump(0x0FFD0100, 0x100, 1);
 }
 
 uint wait_key(void)

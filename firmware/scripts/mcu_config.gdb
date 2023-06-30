@@ -35,6 +35,50 @@ define optcr_unlock
 	end
 end
 
+define set_st
+	set $optsr = *(unsigned long *)0x40022054
+	set $st_cur = (($optsr >> 8) & 0xFF)
+	set $new_state = 0
+	printf "  PRODUCT_STATE current value %c[01;33m%X%c[0m\n", 0x1B, $st_cur, 0x1B
+
+	if ($argc > 0)
+		if $arg0 == 1
+			set $new_state = 0x17
+			printf "    - Switch to PROVISIONING (0x17)\n"
+		end
+		if $arg0 == 2
+			set $new_state = 0x2E
+			printf "    - Switch to iRoT-Provisioned (0x2E)\n"
+		end
+		if $arg0 == 3
+			set $new_state = 0xC6
+			printf "    - Switch to TZ-Closed (0xC6)\n"
+		end
+		if $arg0 == 4
+			set $new_state = 0x72
+			printf "    - Switch to CLOSED (0x72)\n"
+		end
+	end
+	if ($new_state > 0)
+		# Unlock OPTCR before modifying *_PRG register
+		optcr_unlock
+		# Compute new value of SR with PRODUCT_STATE
+		set $newsr = ($optsr & 0xFFFF00FF)
+		set $newsr = ($newsr | ($new_state << 8))
+		# Set this new value back to OPTSR
+		set *(unsigned long *)0x40022054 = $newsr
+		# Set OPTSTRT to apply changes
+		set *(unsigned long *)0x4002201C = 0x00000002
+		# Wait end of operation
+		while (*(unsigned long *)0x4002201C & 2)
+		end
+		set *(unsigned long *)0x4002201C = 0x00000001
+		# Verify
+		set $st_cur = ((*(unsigned long *)0x40022054 >> 8) & 0xFF)
+		printf "  PRODUCT_STATE new value %c[01;33m%X%c[0m\n", 0x1B, $st_cur, 0x1B
+	end
+end
+
 ##
  # @brief Enable or disable TrustZone (modify TZEN value)
  #

@@ -16,6 +16,7 @@
 TARGET   ?= fw_hello
 CROSS    ?= arm-none-eabi-
 BUILDDIR ?= build
+USE_SEC  ?= n
 
 SRC  = hardware.c main.c
 SRC += driver/spi.c driver/uart.c
@@ -31,9 +32,16 @@ CFLAGS  = -mcpu=cortex-m33 -mthumb -mcmse
 CFLAGS += -Os -nostdlib -ffunction-sections
 CFLAGS += -Wall -Wextra -Wconversion -pedantic
 CFLAGS += -Isrc
-CFLAGS += -DRUN_SEC -DTEST_UNSAFE -g
+CFLAGS += -g -DTEST_OBK
 LDFLAGS  = -Wl,-Map=$(TARGET).map,--cref,--gc-sections
-LDFLAGS += -nostartfiles -Tsrc/linker.ld -static
+LDFLAGS += -nostartfiles -static
+
+ifeq ($(USE_SEC), y)
+	CFLAGS += -DUSE_SEC
+	LDFLAGS += -Tsrc/linker_s.ld
+else
+	LDFLAGS += -Tsrc/linker_ns.ld
+endif
 
 COBJ = $(patsubst %.c, $(BUILDDIR)/%.o, $(SRC))
 AOBJ = $(patsubst %.s, $(BUILDDIR)/%.o, $(ASRC))
@@ -46,8 +54,14 @@ fw_s: $(BUILDDIR) $(AOBJ) $(COBJ)
 	@$(OC) -S $(TARGET).elf -O binary $(TARGET).bin
 	@echo "  [OD] $(TARGET).dis"
 	@$(OD) -D $(TARGET).elf > $(TARGET).dis
+ifeq ($(USE_SEC), y)
+	@echo "Build for TrustZone ENABLED"
+else
+	@echo "Build for TrustZone DISABLED"
+endif
 
 fw_ns:
+	@echo ""
 	@echo " ----===={ NonSecure }====----"
 	mkdir -p build_ns
 	@echo "  [CC] src_ns/startup.s"
@@ -83,6 +97,8 @@ $(COBJ) : $(BUILDDIR)/%.o: src/%.c
 	@echo "  [CC] $<"
 	@$(CC) $(CFLAGS) -c $< -o $@
 
+config:
+	$(GDB) -q --command=scripts/mcu_config.gdb
 debug:
 	$(GDB) -q --command=scripts/gdb.cfg $(TARGET).elf
 tz_en:
@@ -95,3 +111,9 @@ tz_dis:
 	@echo "This command will disable TrustZone (TZEN) ! You have 5 second to abort (ctrl-c)"
 	@sleep 5
 	$(GDB) -q --command=scripts/mcu_config.gdb -ex "set_tz 0" -ex "quit"
+st_prov:
+	@echo ""
+	$(GDB) -q --command=scripts/mcu_config.gdb -ex "set_st 1" -ex "quit"
+st_closed:
+	@echo ""
+	$(GDB) -q --command=scripts/mcu_config.gdb -ex "set_st 4" -ex "quit"
