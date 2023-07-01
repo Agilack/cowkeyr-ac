@@ -67,9 +67,11 @@ static inline void _cfg_sec(void)
 	for (i = 0; i < 31; i++)
 		reg_wr((u32)(GTZC1 + 0x1000 + 0x200+ (i*4)), (u32)0xFFFFFFFF);
 
+#ifdef PROTECT_CONSOLE
 	// Protect USART3
 	reg_wr(GTZC1 + 0x10, (1 << 14));
 	reg_wr(GTZC1 + 0x20, (1 << 14));
+#endif
 }
 
 /**

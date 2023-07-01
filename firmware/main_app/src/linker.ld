@@ -1,6 +1,6 @@
 /**
  * @file linker.ld
- * @brief Linker script for Cowkeyr-AC with TrustZone DISABLED (Debug only)
+ * @brief Linker script for Cowkeyr-AC
  *
  * @author Saint-Genest Gwenael <gwen@cowlab.fr>
  * @copyright Agilack (c) 2023
@@ -16,7 +16,7 @@
 ENTRY(Reset_Handler)
 
 /* Highest address of the user mode stack */
-_estack = ORIGIN(SRAM1) + LENGTH(SRAM1); /* end of "RAM" Ram type memory */
+_estack = ORIGIN(SRAM2) + LENGTH(SRAM2); /* end of "RAM" Ram type memory */
 
 _Min_Heap_Size = 0x4000;  /* required amount of heap */
 _Min_Stack_Size = 0x4000; /* required amount of stack */
@@ -24,10 +24,10 @@ _Min_Stack_Size = 0x4000; /* required amount of stack */
 /* Memories definition */
 MEMORY
 {
-	FLASH (rx)  : ORIGIN = 0x08000000, LENGTH = 128K /* 2048K */
+	FLASH  (rx) : ORIGIN = 0x08010000, LENGTH = 128K /* 2048K */
 	SRAM1 (xrw) : ORIGIN = 0x20000000, LENGTH = 256K
-	SRAM2 (xrw) : ORIGIN = 0x30040000, LENGTH = 64K
-	SRAM3 (xrw) : ORIGIN = 0x30050000, LENGTH = 320K
+	SRAM2 (xrw) : ORIGIN = 0x20040000, LENGTH = 64K
+	SRAM3 (xrw) : ORIGIN = 0x20050000, LENGTH = 320K
 }
 
 /* Sections */
@@ -50,6 +50,7 @@ SECTIONS
 		. = ALIGN(4);
 		_etext = .;
 	} >FLASH
+
 
 	.rodata :
 	{
@@ -109,7 +110,7 @@ SECTIONS
 		KEEP (*(SORT(.ethernet_data.*)))
 		KEEP (*(.ethernet_data*))
 		PROVIDE_HIDDEN (__ethernet_data_end = .);
-	} >SRAM1
+	} >SRAM2
 
 	/* Used by the startup to initialize data */
 	_sidata = LOADADDR(.data);
@@ -125,7 +126,7 @@ SECTIONS
 		*(.RamFunc*) /* .RamFunc* sections */
 		. = ALIGN(4);
 		__data_end__ = .;
-	} >SRAM1 AT> FLASH
+	} >SRAM2 AT> FLASH
 
 	/* Uninitialized data section into "RAM" Ram type memory */
 	. = ALIGN(4);
@@ -139,7 +140,7 @@ SECTIONS
 		. = ALIGN(4);
 		_ebss = .;
 		__bss_end__ = _ebss;
-	} >SRAM1
+	} >SRAM2
 
 	/* User_heap_stack section, used to check that there is enough "RAM" Ram type memory left */
 	._user_heap_stack :
@@ -150,7 +151,7 @@ SECTIONS
 		. = . + _Min_Heap_Size;
 		. = . + _Min_Stack_Size;
 		. = ALIGN(8);
-	} >SRAM1
+	} >SRAM2
 
 	/* Remove information from the compiler libraries */
 	/DISCARD/ :

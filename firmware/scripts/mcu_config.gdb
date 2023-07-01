@@ -35,6 +35,46 @@ define optcr_unlock
 	end
 end
 
+##
+ # @brief Modify the flash watermark configuration
+ #
+ # @param $arg0 Bank1 first secure sector number (0 > 127)
+ # @param $arg1 Bank1 last secure sector number (0 > 127)
+ #
+define set_fl_wm
+	set $bank1_wm = *(unsigned long *)0x400220E4
+	set $bank2_wm = *(unsigned long *)0x400221E4
+	printf "Current Flash wartermark configuration :\n"
+	printf "  - Bank 1 start=%x end=%x\n", ($bank1_wm & 0xFF), (($bank1_wm >> 16) & 0xFF)
+	printf "  - Bank 2 start=%x end=%x\n", ($bank2_wm & 0xFF), (($bank2_wm >> 16) & 0xFF)
+
+	# If arguments are present: modify watermark configuration
+	if ($argc == 2)
+		optcr_unlock
+		# Compute new value
+		set $sect_start = $arg0
+		set $sect_end   = $arg1
+		set $new_wm = ($sect_end << 16) | ($sect_start << 0)
+		# Set this new value back to register
+		set *(unsigned long *)0x400220E4 = $new_wm
+		# Set OPTSTRT to apply changes
+		set *(unsigned long *)0x4002201C = 0x00000002
+		# Wait end of operation
+		while (*(unsigned long *)0x4002201C & 2)
+		end
+		set *(unsigned long *)0x4002201C = 0x00000001
+		# Verify
+		set $wm = *(unsigned long *)0x400220E4
+		printf "  new value %c[01;33m%X%c[0m\n", 0x1B, $wm, 0x1B
+	end
+	if ($argc > 0) && ($argc != 2)
+		printf "\nUsage: set_fl_wm <start_sect> <end_sect>\n"
+	end
+end
+
+##
+ # @brief Modify the PRODUCT_STATE register - DANGEROUS
+ #
 define set_st
 	set $optsr = *(unsigned long *)0x40022054
 	set $st_cur = (($optsr >> 8) & 0xFF)

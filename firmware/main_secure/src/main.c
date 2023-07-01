@@ -22,6 +22,7 @@ void main_ns(void);
 void spi_test(void);
 uint wait_key(void);
 void test_obk(void);
+void start_app(void);
 
 /**
  * @brief Entry point of the C code
@@ -37,34 +38,23 @@ int main(void)
 	// Functional modules init
 	log_init();
 
-	log_print(0, "%{--{ CowKeyr-AC }==--%}\n", LOG_BBLU);
+	log_print(0, "\n%{--=={ CowKeyr-AC }==--%}\n", LOG_BBLU);
 
 	// Try to read CPUID_NS to test if currently in secure mode
 	if (reg_rd(0xE002ED00) != 0)
 		log_print(0, " * Run in %{secure%} mode.\n", 2);
 	else
 		log_print(0, " * Run in %{unsecure%} mode.\n", 3);
+	log_print(0, "\n");
 
 #ifdef TEST_UNPRIV
+	// Try to switch to unprivilegied mode (may be secure or non-secure)
 	asm volatile("msr control, %0": : "r" (0x3) : "memory");
 	asm volatile("isb 0x0F":::"memory");
 #endif
 #ifdef TEST_OBK
+	// Try to read content of Key Storage
 	test_obk();
-#endif
-
-#ifdef TEST_UNSAFE
-	if (1)
-	{
-		void __attribute((cmse_nonsecure_call)) (*fct)(void);
-		log_print(0, "\n%{TEST:%} Scitch to unsafe env\n", LOG_BGRN);
-		log_dump((const u8*)0x08100000, 64, 1);
-		asm volatile("msr msp_ns, %0"::"r"(0x20050100):);
-		fct = *(unsigned long *)0x08100004;
-		log_print(0, "Non secure entry at %32x\n", (u32)fct);
-		if (fct != 0)
-			fct();
-	}
 #endif
 
 #ifdef TEST_SPI
@@ -79,7 +69,36 @@ int main(void)
 		}
 	}
 #endif
+	start_app();
 	while(1);
+}
+
+/**
+ * @brief Start the (non-secure) application
+ *
+ */
+void start_app(void)
+{
+	void __attribute((cmse_nonsecure_call)) (*fct)(void);
+	u32 v, wm_s, wm_e;
+
+	// Check flash bank1 watermark configuration
+	v = *(unsigned long *)0x500220E0;
+	wm_s = 0x08000000 + (0x2000 * ((v >>  0) & 0xFF));
+	wm_e = 0x08000000 + (0x2000 * ((v >> 16) & 0xFF));
+	if (wm_e >= 0x08010000)
+	{
+		log_print(0, "SECWM1: %32x (start=%8x / end=%8x)\n", v, wm_s, wm_e);
+		log_print(0, " -> %{ERROR%}: Wrong SECWM1 config (end > 0x08010000)\n", 1);
+	}
+
+	log_print(0, "%{TEST:%} Switch to unsafe env\n", LOG_BGRN);
+	log_dump((const u8*)0x08010000, 64, 1);
+	asm volatile("msr msp_ns, %0"::"r"(0x20050100):);
+	fct = *(unsigned long *)0x08010004;
+	log_print(0, "Non secure entry at %32x\n\n", (u32)fct);
+	if (fct != 0)
+		fct();
 }
 
 /**
@@ -151,7 +170,7 @@ void test_obk(void)
 {
 	log_print(0, "\nTEST OBK\n");
 	log_print(0, "Dump content of Key1:\n");
-	log_dump(0x0FFD0100, 0x100, 1);
+	log_dump((u8 *)0x0FFD0100, 0x100, 1);
 }
 
 uint wait_key(void)
